@@ -1,14 +1,1 @@
-{
-    "1":{
-     "player":{
-        "money":5000
-     },
-     "garage":[
-        {
-            "name":"Skyline R34",
-            "horsepower":200,
-            "price":15000
-        }
-     ]
-    }
-}
+{"1": {"player": {"money": 71814}, "garage": [{"name": "Silvia S15", "horsepower": 100, "price": 0}, {"name": "Skyline R34", "horsepower": 200, "price": 15000}, {"name": "Skyline R34", "horsepower": 200, "price": 15000}]}}

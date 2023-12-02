@@ -37,10 +37,38 @@ class SaveJson:
     """
     def __init__(self, filename:str="saves.json") -> None:
         self._filename = filename
+        self._cursave = None
+
+    @property
+    def current_save(self):
+        return self._cursave
     
-    def __str__(self) -> str:
-        ## TODO impliment to show all existing saves
-        pass
+    @current_save.setter
+    def current_save(self, id:str):
+        self._cursave = id
+
+    def player_garage_to_json(player, garage) -> dict:
+        return {
+            "player":player.json,
+            "garage":garage.json
+        }
+
+    def update_cur_save(self, player, garage):
+        self.update_save(self._cursave, player, garage)
+
+    def update_save(self, id, player, garage):
+        if id in self.saves:
+            cur_saves = self.saves
+            cur_saves[id] = SaveJson.player_garage_to_json(player, garage)
+            self.saves = cur_saves
+
+    def create_first_save(self, player, garage):
+        with open(self._filename, "w") as file:
+            json.dump({"1":{
+                "player":player.json,
+                "garage":garage.json
+            }}, file)
+            self.current_save = "1"
 
     @property
     def existing_saves(self) -> int:
@@ -53,20 +81,23 @@ class SaveJson:
         with open(self._filename, "r") as file:
             return json.load(file)
     
+    @saves.setter
+    def saves(self, data):
+        with open(self._filename, "w") as file:
+            json.dump(data, file)
+
+    
     def new_save(self, player, garage) -> None:
-        data = {
-            "player":player.json,
-            "garage":garage.json
-        }
+        data = SaveJson.player_garage_to_json(player, garage)
         with open(self._filename, "w") as file:
             saves: dict = self.saves
-            saves.pop({str(self.existing_saves+1):data})
+            saves.update({str(self.existing_saves+1):data})
             json.dump(saves, file)
     
     def format_saves(self, saves):
         text = ""
         for x in saves:
-            text+= f"\t{x}  |  Money:£{0} | Car Count: {1}"
+            text+= f"\t{x}  |  Money:£{saves[x]['player']['money']} | Car Count: {1}"
         text+="\n"
         return text
 
@@ -112,7 +143,11 @@ class CarsJson:
     
 class Garage:
     def __init__(self):
-        self.cars = [ ]
+        self.cars:list = [ ]
+        self._curcar = 0
+
+    def add_car(self, car):
+        self.cars.append(car)
 
     def new(self):
         self.cars.append(
@@ -122,6 +157,21 @@ class Garage:
                 "price":0,
             }
         )
+        
+    @property
+    def cur_car(self) -> dict:
+        return self.cars[self._curcar]
+    
+    @cur_car.setter
+    def cur_car(self, id) -> None:
+        if 0 <= id <= len(self.cars):
+            self._curcar = id
+        else:
+            raise ValueError
+
+    @property
+    def json(self) -> list:
+        return self.cars
     
     def load_from_save(self, save):
         """
@@ -146,6 +196,12 @@ class Player:
     
     def load_from_save(self, save):
         self.money = save["money"]
+
+    @property
+    def json(self) -> dict:
+        return {
+            "money":self.money
+        }
 
         
 
