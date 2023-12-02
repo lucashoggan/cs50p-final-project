@@ -1,31 +1,7 @@
 import json
+from typing import List, Dict
 
-class Car:
-    def __init__(self, information):
-        try:
-            self._horsepower = information["horsepower"]
-            self._name = information["name"]
-            self._price = information["price"]
-        except KeyError:
-            raise ValueError("Invalid information")
 
-    @property
-    def horsepower(self):
-        return self._horsepower
-    
-    @horsepower.setter
-    def horsepower(self, hp:int):
-        if hp > 0:
-            self._horsepower = hp
-        else:
-            raise ValueError("Invalid horsepower")
-
-    @property    
-    def json(self):
-        return {
-            "horsepower":self._horsepower,
-            "name":self._name,
-        }
         
 class SaveJson:
     """
@@ -97,7 +73,7 @@ class SaveJson:
     def format_saves(self, saves):
         text = ""
         for x in saves:
-            text+= f"\t{x}  |  Money:£{saves[x]['player']['money']} | Car Count: {1}"
+            text+= f"\t{x}  |  Money:£{saves[x]['player']['money']} | Car Count: {len(saves[x]['garage'])}"
         text+="\n"
         return text
 
@@ -132,12 +108,13 @@ class CarsJson:
         with open(self._filename, "w") as file:
             json.dump(c)
         
-    def add_car(self, name, horsepower, price) -> None:
+    def add_car(self, name, horsepower, price, mod_stage) -> None:
         cur = self.cars
         cur.append({
             "name":name,
             "horsepower":horsepower,
-            "price":price
+            "price":price,
+            "mod-stage":mod_stage
         })
         self.cars = cur
     
@@ -155,6 +132,7 @@ class Garage:
                 "name":"Silvia S15",
                 "horsepower":100,
                 "price":0,
+                "mod-stage":0,
             }
         )
         
@@ -180,7 +158,8 @@ class Garage:
             {
             "name":str,
             "horsepower":int,
-            "price",
+            "price":int,
+            "mod-stage":int
             }, 
             ...
         ]
@@ -203,8 +182,59 @@ class Player:
             "money":self.money
         }
 
-        
+class Mod:
+    def __init__(self, name:str=None, func=None):
+        self._name = name
+        self._func = func
 
+    def setup(self, name:str, func):
+        self._name = name
+        self._func = func
+    
+    def export(self):
+        return {self._name:self._func}
+
+    
+
+class ModBundle:
+    def __init__(self):
+        self._mods = {}
+    def add(self, mod:Mod):
+        self._mods.update(mod.export())
+    
+    @property
+    def mods(self):
+        return self._mods
+    
+class Tuner:
+    def __init__(self):
+        pass
+
+
+    def get_stage_costs(cur_hp:int, cur_stage:int):
+        if cur_stage < 20:
+            costs = [(stage, (stage**1.25)*100 + 100) for stage in range(cur_stage+1, 21)]
+            hps = [cur_hp + stage*200 + stage**3 for stage in range(cur_stage+1, 21)]
+            return "\n".join([f"{stage} ${cost} {hp}hp" for [stage,cost],hp in zip(costs, hps)])
+        else:
+            return "Fully Upgraded"
+    def upgrade_car(car:dict, stage:int, person:Player):
+        cur_stage = car["mod-stage"]
+        cur_hp = car["horsepower"]
+        relative_stage = stage - cur_stage
+        costs = [(stage, (stage**1.25)*100 + 100) for stage in range(cur_stage+1, 21)]
+        hps = [cur_hp + stage*200 + stage**3 for stage in range(cur_stage+1, 21)]
+        if costs[relative_stage-1][1] <= person.money:
+            person.money -= costs[relative_stage-1][1]
+            car["mod-stage"] = stage
+            car["horsepower"] = hps[relative_stage-1]
+            print(f"Upgraded {car['name']} to stage {stage}")
+        else:
+            print("Not enough money in acount")
+
+
+        
+        return None
 
 
 

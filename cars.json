@@ -1,6 +1,42 @@
 [
     {"name":"Skyline R34",
     "horsepower":200,
-    "price":15000    
+    "price":15000,
+    "mod-stage":0   
+    },
+    {"name":"Rx7",
+    "horsepower":250,
+    "price":20000,
+    "mod-stage":0   
+    },
+    {"name":"Rs6",
+    "horsepower":260,
+    "price":21000,
+    "mod-stage":0   
+    },
+    {"name":"Focus RS",
+    "horsepower":280,
+    "price":25000,
+    "mod-stage":0   
+    },
+    {"name":"STI",
+    "horsepower":300,
+    "price":30000,
+    "mod-stage":0   
+    },
+    {"name":"Charger SRT",
+    "horsepower":500,
+    "price":42000,
+    "mod-stage":0   
+    },
+    {"name":"R8",
+    "horsepower":600,
+    "price":65000,
+    "mod-stage":0   
+    },
+    {"name":"720S",
+    "horsepower":710,
+    "price":90000,
+    "mod-stage":0   
     }
 ]

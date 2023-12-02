@@ -1,18 +1,32 @@
-import math
 import sys
 import os
 from time import sleep
 from typing import List
-from classes import Car, SaveJson, CarsJson, Garage, Player
+from classes import  SaveJson, CarsJson, Garage, Player, Tuner
 from random import randint
 import pyfiglet
 from alive_progress import alive_bar
+
 
 
 VERSION = 0.1
 TESTING = False
 carsDB = CarsJson("cars.json")
 savesDB = SaveJson("saves.json")
+
+def valid_input(in_msg, clss, err_msg, f=None):
+    while True:
+        try:
+            i = clss(input(in_msg))
+            if f != None:
+                if f(i):
+                    return i
+                else:
+                    print(err_msg)
+            else:
+                return i
+        except ValueError:
+            print(err_msg)
 
 def print_if_testing(*objects, end="\n"):
     if TESTING: print(*objects, end=end)
@@ -24,7 +38,7 @@ def calc_prize(inverse_place, count, bet) -> int:
     return round(half_multi * place_dec * bet)
 
 def make_racers(hp:int) -> List[int]:
-    bars = [hp*.75, hp*1.1]
+    bars = [hp*0.9, hp*1.1]
     count = round(hp/100 + 4)
     output = []
     for x in range(count):
@@ -64,7 +78,7 @@ def load_player():
                 print(savesDB.format_saves(savesDB.saves), end="")
                 while True:
                     try:
-                        pick = input("SAVE>").strip()
+                        pick = input("SAVE (Ctrl+D to exit) >").strip()
                         if 0 < int(pick) < savesDB.existing_saves+1:
                             create_loader(100, 0.25)
                             break
@@ -72,6 +86,8 @@ def load_player():
                             print("Invalid Save")
                     except ValueError:
                         print("Invalid Save")
+                    except EOFError:
+                        break
                 save_json = savesDB.saves[pick]    
                 savesDB.current_save = pick
                 g = Garage()
@@ -109,7 +125,7 @@ def select_car(a, p:Player, g:Garage):
     while True:
         try:
             display_cars(a, p, g)
-            pick = int(input("Pick >"))
+            pick = int(input("Pick (Ctrl+D to exit) >"))
             if 1 <= pick <= len(g.cars)+1:
                 g.cur_car = pick-1
                 print(f"{g.cars[pick-1]['name']} selected")
@@ -117,6 +133,8 @@ def select_car(a, p:Player, g:Garage):
 
         except ValueError:
             pass
+        except EOFError:
+            break
 
 def clear_screen(*o):
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -135,87 +153,130 @@ def format_cars(cars):
 def dealership(a, p, g:Garage):
     cars = carsDB.cars
     print(format_cars(cars), end="")
-    try:
-        pick = int(input("Pick >").strip())
-        if not (1 <= pick <= len(cars)):
-            raise ValueError
-        car_price = cars[pick-1]['price']
-        if p.money >= car_price:
-            g.add_car(cars[pick-1])
-            p.money -= car_price
-            print(f"{cars[pick-1]['name']} bought")
-            
-            
-            
+    while True:
+        try:
+            pick = int(input("Pick (Ctrl+D to exit)>").strip())
+            if not (1 <= pick <= len(cars)):
+                raise ValueError
+            car_price = cars[pick-1]['price']
+            if p.money >= car_price:
+                g.add_car(cars[pick-1])
+                p.money -= car_price
+                print(f"{cars[pick-1]['name']} bought")
+                break
+            else:
+                print("Not enough funds")
+                break
+        except ValueError:
+            print("Invalid Value")
+        except EOFError:
+            break
 
-    except ValueError:
-        print("Invalid Value")
+    return {
+        "save":True
+    }
 
 def get_cur_car_hp(g:Garage):
     if g.cur_car != None:
         return g.cur_car
 
-def get_int_in(*objects):
-    output = []
-    for object in objects:
-        while True:
-            try:
-                i = int(input(object[0]))
-                if len(object) == 2:
-                    if object[1](i) == True:
-                        output.append(i)
-                        break
-                else:
-                    output.append(i)
-                    break
-            except ValueError:
-                pass
-    return output
+
 
 def race(a, p:Player, g):
     c_c = get_cur_car_hp(g)
-    bet = get_int_in(("Bet> ", lambda a: 0<a<p.money))[0]
+    bet = valid_input("Bet >", int, "Invalid bet", lambda a: 0<a<p.money)
     racers = make_racers(c_c["horsepower"])
     place = get_place(c_c["horsepower"], racers)
     inverse_place = get_inverse_place(c_c["horsepower"], racers)
     prize_money = calc_prize( inverse_place, len(racers)+1, bet)
     print(f"You won {prize_money}" if prize_money > 0 else f"You lost {-prize_money}", end="")
-    print(" | You placed", "1st" if place == 1 else ("2nd" if place == 2 else f"{place}rd"), f"out of {len(racers)+1} racers")
+    print(" | You placed", "1st" if str(place)[-1] == "1" else ("2nd" if str(place)[-1] == "2" else ("3rd" if str(place)[-1] == "3" else f"{place}th")), f"out of {len(racers)+1} racers")
 
     p.money += prize_money
+    return {
+        "save":True
+    }
+
+def upgrade(a, p:Player, g:Garage):
+    print(pyfiglet.figlet_format("Upgrade-stages", font="slant"))
+    print(Tuner.get_stage_costs(g.cur_car["horsepower"], g.cur_car["mod-stage"]))
+    while True:
+        try:
+            pick = int(input("Stage (Ctrl+D to exit)>"))
+            if 0 < pick < 21:
+                Tuner.upgrade_car(g.cur_car, pick, p)
+                return {
+                    "save":True
+                }
+            else:
+                print("Invalid input")
+        except EOFError:
+            break
+        except ValueError:
+            print("Invalid input")
+        
+    
+
+def display(a, p:Player, g:Garage):
+    if "-c" in a:
+        display_cars(a, p, g)
+    if "-s" in a:
+        display_stats(a, p, g)
 
 def display_stats(a:str, p:Player, g:Garage):
     print(f"${p.money} | Car count - {len(g.cars)}")
 
-def main():
-    print(pyfiglet.figlet_format("TEXT-TURBO", font="slant"))
-    print(f"v{VERSION}")    
-    GARAGE, PLAYER = load_player()
-    actions = {
-        "display-stats":display_stats, 
+
+actions = {
         "quit":exit_app,
-        "display-cars":display_cars,
+        "display":display,
         "clear":clear_screen,
         "save":save,
         "dealership":dealership,
         "select-car":select_car,
-        "race":race
+        "race":race,
+        "upgrade":upgrade
+}
+
+def help():
+    global actions
+    desc = {
+        "display": "-s to display stats, -c to display cars"
     }
+    print(pyfiglet.figlet_format("HELP", font="slant"))
+    for action in actions:
+        
+        if action not in desc:
+            print(action)
+        else:
+            print(action, "|", desc[action])
+
+    
+
+def main():
+    global actions
+    print(pyfiglet.figlet_format("TEXT-TURBO", font="slant"))
+    print(f"v{VERSION}")    
+    GARAGE, PLAYER = load_player()
     while True:
         action = input(">").strip()
+        found = False
         for name in actions:
-            if action.startswith(name):
-                actions[name](action.split(name)[0].strip(), PLAYER, GARAGE)
+            if action.split(" ")[0] == name:
+                found = True
+                result = actions[name]("".join(action.split(name)).strip(), PLAYER, GARAGE)
+                if result != None:
+                    try:
+                        if result["save"] == True:
+                            savesDB.update_cur_save(PLAYER, GARAGE)
+                    except KeyError:
+                        pass
+        if action.startswith("help"):
+            help()
+        elif not found:
+            print("Not an comand, use \"help\" to get a list of all commands")
 
 
 if __name__ == "__main__":
     main()
-    """
-    while True:
-        hp = int(input("Hp>"))
-        bet = int(input("Bet>"))
-        racers = make_racers(hp)
-        place = get_place(hp, racers)
-        inverse_place = get_inverse_place(hp, racers)
-        print(calc_prize(place, inverse_place, len(racers), bet), place, len(racers), inverse_place)
-"""
+    
