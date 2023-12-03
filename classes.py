@@ -135,10 +135,14 @@ class Garage:
                 "mod-stage":0,
             }
         )
+        self.cur_car = 0
         
     @property
     def cur_car(self) -> dict:
-        return self.cars[self._curcar]
+        try:
+            return self.cars[self._curcar]
+        except IndexError:
+            return None
     
     @cur_car.setter
     def cur_car(self, id) -> None:
@@ -182,7 +186,7 @@ class Player:
             "money":self.money
         }
 
-class Mod:
+class Action:
     def __init__(self, name:str=None, func=None):
         self._name = name
         self._func = func
@@ -196,15 +200,19 @@ class Mod:
 
     
 
-class ModBundle:
+class ActionBundle:
     def __init__(self):
-        self._mods = {}
-    def add(self, mod:Mod):
-        self._mods.update(mod.export())
+        self._actions = {}
+    def add(self, action:Action):
+        self._actions.update(action.export())
     
     @property
-    def mods(self):
-        return self._mods
+    def actions(self):
+        return self._actions
+
+    def add_multi(self, multi):
+        for action in multi:
+            self._actions.update(action.export())
     
 class Tuner:
     def __init__(self):
@@ -236,6 +244,3 @@ class Tuner:
         
         return None
 
-
-
-    
